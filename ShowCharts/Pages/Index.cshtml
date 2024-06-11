@@ -1,107 +1,94 @@
 ﻿@page
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/stock/highstock.js"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
 
-@using Highsoft.Web.Mvc.Charts
-@using Highsoft.Web.Mvc.Charts.Rendering
+@using Highsoft.Web.Mvc.Stocks
+@using Highsoft.Web.Mvc.Stocks.Rendering
 @model IndexModel
 @{
-    var chartOptions = new Highcharts
-    {
-        Chart = new Chart()
+    var chartOptions =
+        new Highstock
         {
-            Events = new ChartEvents()
+            Chart = new Chart
             {
-                Load = "requestData"
-            }
-        },
-        Title = new Title
-        {
-            Text = "Monthly Average Rainfall"
-        },
-        Subtitle = new Subtitle
-        {
-            Text = "Source: WorldClimate.com"
-        },
-        XAxis = new List<XAxis>
+                Events = new ChartEvents
+                {
+                    Load = "requestData"
+                }
+            },
+            RangeSelector = new RangeSelector
+            {
+                Selected = 4
+            },
+            XAxis = new List<XAxis>
             {
                 new XAxis
                 {
-                    Categories = new List<string> { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+                    Ordinal = true
                 }
             },
-        YAxis = new List<YAxis>
+
+            YAxis = new List<YAxis>
             {
                 new YAxis
                 {
-                    Min = 0,
-                    Title = new YAxisTitle
+                    Labels = new YAxisLabels
                     {
-                        Text = "Rainfall (mm)"
+                        Formatter = "formatYAxis",
+                    },
+                    PlotLines = new List<YAxisPlotLines>
+                    {
+                        new YAxisPlotLines
+                        {
+                            Value = 0,
+                            Width = 2,
+                            Color = "silver"
+                        }
                     }
                 }
             },
-        Tooltip = new Tooltip
-        {
-            HeaderFormat = "<span style='font-size:10px'>{point.key}</span><table style='font-size:12px'>",
-            PointFormat = "<tr><td style='color:{series.color};padding:0'>{series.name}: </td><td style='padding:0'><b>{point.y:.1f} mm</b></td></tr>",
-            FooterFormat = "</table>",
-            Shared = true,
-            UseHTML = true
-        },
-        PlotOptions = new PlotOptions
-        {
-            Column = new PlotOptionsColumn
+            PlotOptions = new PlotOptions
             {
-                PointPadding = 0.2,
-                BorderWidth = 0
-            }
-        },
-        Series = new List<Series>
-            {
-                new ColumnSeries
+                Series = new PlotOptionsSeries
                 {
-                    Name = "Tokyo",
-                    Data = ViewData["tokyoData"] as List<ColumnSeriesData>
-                },
-                new ColumnSeries
-                {
-                    Name = "New York",
-                    Data = ViewData["nyData"] as List<ColumnSeriesData>
-                },
-                new ColumnSeries
-                {
-                    Name = "Berlin",
-                    Data = ViewData["berlinData"] as List<ColumnSeriesData>
-                },
-                new ColumnSeries
-                {
-                    Name = "London",
-                    Data = ViewData["londonData"] as List<ColumnSeriesData>
+                    Compare = PlotOptionsSeriesCompare.Percent
                 }
-            }
-    };
+            },
+            Tooltip = new Tooltip
+            {
+                PointFormat = @"<span style='color:{series.color}'>{series.name}</span>: <b>{point.y}</b> ({point.change}%)<br/>",
+                ValueDecimals = 2
+            },
+            Series = ViewData["SeriesData"] as List<Series>
+        };
 
     chartOptions.ID = "chart";
-    var renderer = new HighchartsRenderer(chartOptions);
+    var renderer = new HighstockRenderer(chartOptions);
 }
 
 @Html.Raw(renderer.RenderHtml())
 
 <script>
     async function requestData() {
-        const result = await fetch('https://demo-live-data.highcharts.com/time-rows.json');
+        const result = await fetch('./?handler=ChartData');
         if (result.ok) {
-            const data = await result.json();
+        //chart.series = [{name: "test"},{name: "test2"}];
+        
+        /*    const data = await result.json();
             const [date, value] = data[0];
             const point = [new Date(date).getTime(), value * 10];
             const series = chart.series[0],
                 shift = series.data.length > 20; // shift if the series is longer than 20
             // add the point
-            chart.series[0].addPoint(point, true, shift);
+            chart.series[0] .addPoint(point, true, shift);*/
             // call it again after one second
             setTimeout(requestData, 1000);
         }
     }
+
+    function formatYAxis() {
+        return (this.value > 0 ? ' + ' : '') + this.value + '%';
+    }
+    
 </script>

@@ -1,8 +1,17 @@
+using Binance.Net.Clients;
+using Microsoft.EntityFrameworkCore;
+using ShowCharts.DataSchema;
+using ShowCharts.Streaming;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-
+builder.Services.AddDbContext<DatabaseContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("PriceDatabase")));
+var streamingBinance = new BinanceStreaming();
+builder.Services.AddSingleton(streamingBinance);
+   
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -13,6 +22,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+var socketClient = new BinanceSocketClient();
+var tickerSubscriptionResult = socketClient.SpotApi.ExchangeData.SubscribeToTradeUpdatesAsync(
+    new List<string>(){
+    "ETHUSDT","BTCUSDT","PEPEUSDT","DOGEUSDT","USDCUSDT"}, async (update) =>
+    {
+        await streamingBinance.OnSymbolTick(update.Data);
+    });
+
+    
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
